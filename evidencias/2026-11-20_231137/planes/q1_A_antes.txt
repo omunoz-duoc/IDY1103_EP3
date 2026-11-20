@@ -1,0 +1,60 @@
+-- Q1 · escenario A · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q1_antes.sql
+
+-- Q1 ANTES · Disponibilidad de horas
+-- Negocio: el call center y la recepción buscan horas libres de una especialidad
+-- en una sede para la próxima semana. Se ejecuta cientos de veces al día.
+SELECT c.cita_id, c.fecha_hora, p.nombre_completo AS profesional, e.nombre AS especialidad
+FROM citas c
+JOIN profesionales p   ON p.profesional_id  = c.profesional_id
+JOIN especialidades e  ON e.especialidad_id = p.especialidad_id
+JOIN sedes s           ON s.sede_id         = c.sede_id
+WHERE s.nombre = 'Sede Santiago Centro'
+  AND e.nombre = 'Cardiología'
+  AND c.estado = 'DISPONIBLE'
+  AND DATE(c.fecha_hora) BETWEEN DATE '2026-11-02' AND DATE '2026-11-08'
+ORDER BY c.fecha_hora, c.cita_id
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                                QUERY PLAN                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=18998.00..18998.00 rows=2 width=53) (actual time=38.750..38.755 rows=40.00 loops=1)
+   Sort Key: c.fecha_hora, c.cita_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=6374
+   ->  Nested Loop  (cost=0.00..18997.99 rows=2 width=53) (actual time=29.483..38.715 rows=40.00 loops=1)
+         Join Filter: (e.especialidad_id = p.especialidad_id)
+         Rows Removed by Join Filter: 222
+         Buffers: shared hit=6368
+         ->  Seq Scan on especialidades e  (cost=0.00..1.15 rows=1 width=18) (actual time=0.008..0.011 rows=1.00 loops=1)
+               Filter: (nombre = 'Cardiología'::text)
+               Rows Removed by Filter: 11
+               Buffers: shared hit=1
+         ->  Nested Loop  (cost=0.00..18996.51 rows=26 width=43) (actual time=29.087..38.685 rows=262.00 loops=1)
+               Join Filter: (p.profesional_id = c.profesional_id)
+               Rows Removed by Join Filter: 104538
+               Buffers: shared hit=6367
+               ->  Seq Scan on profesionales p  (cost=0.00..8.00 rows=400 width=31) (actual time=0.006..0.030 rows=400.00 loops=1)
+                     Buffers: shared hit=4
+               ->  Materialize  (cost=0.00..18832.58 rows=26 width=20) (actual time=0.055..0.082 rows=262.00 loops=400)
+                     Storage: Memory  Maximum Storage: 29kB
+                     Buffers: shared hit=6363
+                     ->  Nested Loop  (cost=0.00..18832.44 rows=26 width=20) (actual time=21.858..28.855 rows=262.00 loops=1)
+                           Join Filter: (s.sede_id = c.sede_id)
+                           Rows Removed by Join Filter: 4213
+                           Buffers: shared hit=6363
+                           ->  Seq Scan on sedes s  (cost=0.00..1.25 rows=1 width=4) (actual time=0.003..0.006 rows=1.00 loops=1)
+                                 Filter: (nombre = 'Sede Santiago Centro'::text)
+                                 Rows Removed by Filter: 19
+                                 Buffers: shared hit=1
+                           ->  Seq Scan on citas c  (cost=0.00..18824.57 rows=530 width=24) (actual time=21.851..28.603 rows=4475.00 loops=1)
+                                 Filter: (((estado)::text = 'DISPONIBLE'::text) AND (date(fecha_hora) >= '2026-11-02'::date) AND (date(fecha_hora) <= '2026-11-08'::date))
+                                 Rows Removed by Filter: 495525
+                                 Buffers: shared hit=6362
+ Planning:
+   Buffers: shared hit=314
+ Planning Time: 0.769 ms
+ Execution Time: 38.815 ms
+(37 rows)
+

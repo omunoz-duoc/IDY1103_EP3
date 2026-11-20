@@ -1,0 +1,57 @@
+-- Q3 · escenario D · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q3_despues.sql
+
+-- Q3 DESPUÉS · Búsqueda de paciente por nombre y sus próximas citas
+-- Reescritura: ILIKE sobre la columna sin envolverla en UPPER(), para que el
+-- índice de trigramas pueda usarse; se filtra primero a los pacientes
+-- encontrados y luego se buscan sus citas futuras.
+-- Apoyo: índice GIN (pg_trgm) ix_pacientes_nombre_trgm y B-Tree
+-- ix_citas_paciente_fecha sobre la FK citas.paciente_id.
+WITH encontrados AS (
+  SELECT paciente_id, rut, nombre_completo, prevision
+  FROM pacientes
+  WHERE nombre_completo ILIKE '%rojas muñoz%'
+)
+SELECT p.paciente_id, p.rut, p.nombre_completo, p.prevision,
+       c.cita_id, c.fecha_hora, c.estado, s.nombre AS sede
+FROM encontrados p
+LEFT JOIN citas c ON c.paciente_id = p.paciente_id
+                 AND c.fecha_hora >= TIMESTAMP '2026-11-02'
+LEFT JOIN sedes s ON s.sede_id = c.sede_id
+ORDER BY p.nombre_completo, p.paciente_id, c.fecha_hora
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=152.50..152.52 rows=8 width=89) (actual time=0.775..0.777 rows=22.00 loops=1)
+   Sort Key: pacientes.nombre_completo, pacientes.paciente_id, c.fecha_hora
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=167
+   ->  Nested Loop Left Join  (cost=91.02..152.38 rows=8 width=89) (actual time=0.447..0.735 rows=22.00 loops=1)
+         Buffers: shared hit=158
+         ->  Bitmap Heap Scan on pacientes  (cost=90.45..109.32 rows=5 width=49) (actual time=0.421..0.519 rows=19.00 loops=1)
+               Recheck Cond: (nombre_completo ~~* '%rojas muñoz%'::text)
+               Rows Removed by Index Recheck: 13
+               Heap Blocks: exact=32
+               Buffers: shared hit=56
+               ->  Bitmap Index Scan on ix_pacientes_nombre_trgm  (cost=0.00..90.45 rows=5 width=0) (actual time=0.407..0.407 rows=32.00 loops=1)
+                     Index Cond: (nombre_completo ~~* '%rojas muñoz%'::text)
+                     Index Searches: 1
+                     Buffers: shared hit=24
+         ->  Nested Loop Left Join  (cost=0.56..8.60 rows=1 width=48) (actual time=0.010..0.011 rows=0.79 loops=19)
+               Buffers: shared hit=102
+               ->  Index Scan using ix_citas_paciente_fecha on citas c  (cost=0.42..8.45 rows=1 width=37) (actual time=0.009..0.010 rows=0.79 loops=19)
+                     Index Cond: ((paciente_id = pacientes.paciente_id) AND (fecha_hora >= '2026-11-02 00:00:00'::timestamp without time zone))
+                     Index Searches: 19
+                     Buffers: shared hit=72
+               ->  Index Scan using sedes_pkey on sedes s  (cost=0.14..0.16 rows=1 width=19) (actual time=0.001..0.001 rows=1.00 loops=15)
+                     Index Cond: (sede_id = c.sede_id)
+                     Index Searches: 15
+                     Buffers: shared hit=30
+ Planning:
+   Buffers: shared hit=396
+ Planning Time: 1.076 ms
+ Execution Time: 0.856 ms
+(29 rows)
+

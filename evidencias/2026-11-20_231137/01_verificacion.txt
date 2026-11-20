@@ -1,0 +1,39 @@
+                tabla                | filas  
+-------------------------------------+--------
+ pacientes (ep2_customers)           |  50000
+ citas (ep2_orders)                  | 500000
+ cita_prestaciones (ep2_order_items) | 975948
+ prestaciones (ep2_products)         |   2000
+ pagos (ep2_payments)                | 279204
+ sedes (ep2_stores)                  |     20
+ profesionales                       |    400
+ especialidades                      |     12
+(8 rows)
+
+   estado   | filas  | pct  
+------------+--------+------
+ ATENDIDA   | 279204 | 55.8
+ DISPONIBLE |  94560 | 18.9
+ ANULADA    |  57163 | 11.4
+ NO_ASISTE  |  42870 |  8.6
+ AGENDADA   |  17688 |  3.5
+ CONFIRMADA |   8515 |  1.7
+(6 rows)
+
+       tabla       |          indice           
+-------------------+---------------------------
+ cita_prestaciones | cita_prestaciones_pkey
+ citas             | citas_pkey
+ especialidades    | especialidades_nombre_key
+ especialidades    | especialidades_pkey
+ pacientes         | pacientes_pkey
+ pagos             | pagos_pkey
+ prestaciones      | prestaciones_pkey
+ profesionales     | profesionales_pkey
+ sedes             | sedes_pkey
+(9 rows)
+
+
+MongoDB
+  eventos_cita:          600000
+  registros_call_center: 200000

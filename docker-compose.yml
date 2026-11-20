@@ -1,0 +1,110 @@
+# ============================================================
+# Salud Integral 360 · EP2 IDY1103
+# Uso recomendado: ./ejecutar.sh (Linux/macOS/Git Bash) o .\ejecutar.ps1 (Windows)
+# También funciona solo con: docker compose up
+# ============================================================
+name: ep2-salud360
+
+x-recursos-bd: &recursos-bd          # mismos recursos para ambas bases de datos
+  cpus: ${DB_CPUS:-2}
+  mem_limit: ${DB_RAM:-2g}
+
+services:
+  postgres:
+    image: postgres:18
+    <<: *recursos-bd
+    shm_size: 256mb
+    environment:
+      POSTGRES_USER: ${PG_USER:-dba}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-Salud360_dba}
+      POSTGRES_DB: salud360
+    # Configuración fija para que las mediciones sean comparables entre equipos
+    command:
+      - postgres
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - jit=off
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - track_io_timing=on
+    ports:
+      - "${PG_PORT:-5432}:5432"
+    volumes:
+      - ./init/postgres:/docker-entrypoint-initdb.d:ro
+      - ./scripts:/scripts:ro
+    healthcheck:   # por TCP: solo responde cuando terminó la carga inicial
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d salud360"]
+      interval: 3s
+      timeout: 3s
+      retries: 100
+      start_period: 180s
+
+  mongo:
+    image: mongo:8.0
+    <<: *recursos-bd
+    command: ["--wiredTigerCacheSizeGB", "1"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-dba}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-Salud360_dba}
+      MONGO_INITDB_DATABASE: salud360
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - ./init/mongo:/docker-entrypoint-initdb.d:ro
+      - ./scripts:/scripts:ro
+    healthcheck:   # por la red interna: el servidor temporal de la carga solo escucha en 127.0.0.1
+      test: ["CMD-SHELL", "mongosh --quiet --host mongo -u $${MONGO_INITDB_ROOT_USERNAME} -p $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval \"quit(db.getSiblingDB('salud360').registros_call_center.estimatedDocumentCount() >= 200000 ? 0 : 1)\""]
+      interval: 3s
+      timeout: 10s
+      retries: 100
+      start_period: 180s
+
+  # Contenedores de una sola ejecución: miden y escriben en ./evidencias
+  runner-pg:
+    image: postgres:18
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    user: "${HOST_UID:-0}:${HOST_GID:-0}"
+    environment:
+      RUN_ID: ${RUN_ID:-manual}
+      PGHOST: postgres
+      POSTGRES_USER: ${PG_USER:-dba}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-Salud360_dba}
+      POSTGRES_DB: salud360
+      HOME: /tmp
+    # tr quita retornos de carro por si el proyecto se copió desde Windows
+    entrypoint: ["bash", "-c", "tr -d '\\r' < /runner/runner_pg.sh | bash"]
+    volumes:
+      - ./runner:/runner:ro
+      - ./scripts:/scripts:ro
+      - ./evidencias:/evidencias
+    restart: "no"
+
+  runner-mongo:
+    image: mongo:8.0
+    depends_on:
+      runner-pg:
+        condition: service_completed_successfully
+    user: "${HOST_UID:-0}:${HOST_GID:-0}"
+    environment:
+      RUN_ID: ${RUN_ID:-manual}
+      HOME: /tmp
+    entrypoint:
+      - mongosh
+      - --quiet
+      - mongodb://${MONGO_USER:-dba}:${MONGO_PASSWORD:-Salud360_dba}@mongo:27017/salud360?authSource=admin
+      - /runner/runner_mongo.js
+    volumes:
+      - ./runner:/runner:ro
+      - ./scripts:/scripts:ro
+      - ./evidencias:/evidencias
+    restart: "no"

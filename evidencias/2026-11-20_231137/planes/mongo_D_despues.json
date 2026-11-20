@@ -1,0 +1,420 @@
+{
+  "pipeline": [
+    {
+      "$match": {
+        "tipo": "ANULACION",
+        "ts": {
+          "$gte": "2026-10-03T00:00:00.000Z",
+          "$lt": "2026-11-02T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "$group": {
+        "_id": {
+          "sede_id": "$sede_id",
+          "motivo": "$detalle.motivo"
+        },
+        "anulaciones": {
+          "$sum": 1
+        }
+      }
+    },
+    {
+      "$sort": {
+        "_id.sede_id": 1,
+        "anulaciones": -1,
+        "_id.motivo": 1
+      }
+    }
+  ],
+  "explain": {
+    "explainVersion": "2",
+    "stages": [
+      {
+        "$cursor": {
+          "queryPlanner": {
+            "namespace": "salud360.eventos_cita",
+            "parsedQuery": {
+              "$and": [
+                {
+                  "tipo": {
+                    "$eq": "ANULACION"
+                  }
+                },
+                {
+                  "ts": {
+                    "$lt": "2026-11-02T00:00:00.000Z"
+                  }
+                },
+                {
+                  "ts": {
+                    "$gte": "2026-10-03T00:00:00.000Z"
+                  }
+                }
+              ]
+            },
+            "indexFilterSet": false,
+            "queryHash": "E2887BA1",
+            "planCacheShapeHash": "E2887BA1",
+            "planCacheKey": "87065DED",
+            "optimizationTimeMillis": 0,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "queryPlan": {
+                "stage": "GROUP",
+                "planNodeId": 4,
+                "inputStage": {
+                  "stage": "FETCH",
+                  "planNodeId": 2,
+                  "inputStage": {
+                    "stage": "IXSCAN",
+                    "planNodeId": 1,
+                    "keyPattern": {
+                      "tipo": 1,
+                      "ts": 1
+                    },
+                    "indexName": "ix_eventos_tipo_ts",
+                    "isMultiKey": false,
+                    "multiKeyPaths": {
+                      "tipo": [],
+                      "ts": []
+                    },
+                    "isUnique": false,
+                    "isSparse": false,
+                    "isPartial": false,
+                    "indexVersion": 2,
+                    "direction": "forward",
+                    "indexBounds": {
+                      "tipo": [
+                        "[\"ANULACION\", \"ANULACION\"]"
+                      ],
+                      "ts": [
+                        "[new Date(1790985600000), new Date(1793577600000))"
+                      ]
+                    }
+                  }
+                }
+              },
+              "slotBasedPlan": {
+                "slots": "$$RESULT=s15 env: { s5 = {\"tipo\" : 1, \"ts\" : 1} }",
+                "stages": "[4] project [s15 = newObj(\"_id\", s13, \"anulaciones\", s14)] \n[4] project [s13 = newObj(\"sede_id\", s9, \"motivo\", s10), s14 = (convert ( s12, int32) ?: s12)] \n[4] group [s9, s10] [s12 = count()] spillSlots[s11] mergingExprs[sum(s11)] \n[4] project [s10 = traverseP(s8, lambda(l2.0) { getField(move(l2.0), \"motivo\") }, 1)] \n[2] nlj inner [] [s1, s2, s3, s4, s5] \n    left \n        [1] ixseek KS(3C414E554C4143494F4E0078800001A0FF0F7C000104) KS(3C414E554C4143494F4E0078800001A1998E44000104) s4 s1 s2 s3 [] @\"fb21c4bb-041f-455c-a60c-80906079d573\" @\"ix_eventos_tipo_ts\" true \n    right \n        [2] limit 1ll \n        [2] seek s1 s6 s7 s2 s3 s4 s5 none none [s8 = detalle, s9 = sede_id] @\"fb21c4bb-041f-455c-a60c-80906079d573\" true false \n"
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 140,
+            "executionTimeMillis": 9,
+            "totalKeysExamined": 4883,
+            "totalDocsExamined": 4883,
+            "executionStages": {
+              "stage": "project",
+              "planNodeId": 4,
+              "nReturned": 140,
+              "executionTimeMillisEstimate": 2,
+              "opens": 1,
+              "closes": 1,
+              "saveState": 3,
+              "restoreState": 3,
+              "isEOF": 1,
+              "projections": {
+                "15": "newObj(\"_id\", s13, \"anulaciones\", s14) "
+              },
+              "inputStage": {
+                "stage": "project",
+                "planNodeId": 4,
+                "nReturned": 140,
+                "executionTimeMillisEstimate": 2,
+                "opens": 1,
+                "closes": 1,
+                "saveState": 3,
+                "restoreState": 3,
+                "isEOF": 1,
+                "projections": {
+                  "13": "newObj(\"sede_id\", s9, \"motivo\", s10) ",
+                  "14": "(convert ( s12, int32) ?: s12) "
+                },
+                "inputStage": {
+                  "stage": "group",
+                  "planNodeId": 4,
+                  "nReturned": 140,
+                  "executionTimeMillisEstimate": 2,
+                  "opens": 1,
+                  "closes": 1,
+                  "saveState": 3,
+                  "restoreState": 3,
+                  "isEOF": 1,
+                  "groupBySlots": [
+                    {
+                      "high": 0,
+                      "low": 9,
+                      "unsigned": false
+                    },
+                    {
+                      "high": 0,
+                      "low": 10,
+                      "unsigned": false
+                    }
+                  ],
+                  "expressions": {
+                    "12": "count() ",
+                    "initExprs": {
+                      "12": null
+                    }
+                  },
+                  "mergingExprs": {
+                    "11": "sum(s11) "
+                  },
+                  "usedDisk": false,
+                  "spills": 0,
+                  "spilledBytes": 0,
+                  "spilledRecords": 0,
+                  "spilledDataStorageSize": 0,
+                  "inputStage": {
+                    "stage": "project",
+                    "planNodeId": 4,
+                    "nReturned": 4883,
+                    "executionTimeMillisEstimate": 2,
+                    "opens": 1,
+                    "closes": 1,
+                    "saveState": 3,
+                    "restoreState": 3,
+                    "isEOF": 1,
+                    "projections": {
+                      "10": "traverseP(s8, lambda(l2.0) { getField(move(l2.0), \"motivo\") }, 1) "
+                    },
+                    "inputStage": {
+                      "stage": "nlj",
+                      "planNodeId": 2,
+                      "nReturned": 4883,
+                      "executionTimeMillisEstimate": 2,
+                      "opens": 1,
+                      "closes": 1,
+                      "saveState": 3,
+                      "restoreState": 3,
+                      "isEOF": 1,
+                      "totalDocsExamined": 4883,
+                      "totalKeysExamined": 4883,
+                      "collectionScans": 0,
+                      "collectionSeeks": 4883,
+                      "indexScans": 0,
+                      "indexSeeks": 1,
+                      "indexesUsed": [
+                        "ix_eventos_tipo_ts"
+                      ],
+                      "innerOpens": 4883,
+                      "innerCloses": 1,
+                      "outerProjects": [],
+                      "outerCorrelated": [
+                        {
+                          "high": 0,
+                          "low": 1,
+                          "unsigned": false
+                        },
+                        {
+                          "high": 0,
+                          "low": 2,
+                          "unsigned": false
+                        },
+                        {
+                          "high": 0,
+                          "low": 3,
+                          "unsigned": false
+                        },
+                        {
+                          "high": 0,
+                          "low": 4,
+                          "unsigned": false
+                        },
+                        {
+                          "high": 0,
+                          "low": 5,
+                          "unsigned": false
+                        }
+                      ],
+                      "outerStage": {
+                        "stage": "ixseek",
+                        "planNodeId": 1,
+                        "nReturned": 4883,
+                        "executionTimeMillisEstimate": 0,
+                        "opens": 1,
+                        "closes": 1,
+                        "saveState": 3,
+                        "restoreState": 3,
+                        "isEOF": 1,
+                        "indexName": "ix_eventos_tipo_ts",
+                        "keysExamined": 4883,
+                        "seeks": 1,
+                        "numReads": 4884,
+                        "indexKeySlot": 4,
+                        "recordIdSlot": 1,
+                        "snapshotIdSlot": 2,
+                        "indexIdentSlot": 3,
+                        "outputSlots": [],
+                        "indexKeysToInclude": "00000000000000000000000000000000",
+                        "seekKeyLow": "KS(3C414E554C4143494F4E0078800001A0FF0F7C000104) ",
+                        "seekKeyHigh": "KS(3C414E554C4143494F4E0078800001A1998E44000104) "
+                      },
+                      "innerStage": {
+                        "stage": "limit",
+                        "planNodeId": 2,
+                        "nReturned": 4883,
+                        "executionTimeMillisEstimate": 2,
+                        "opens": 4883,
+                        "closes": 1,
+                        "saveState": 3,
+                        "restoreState": 3,
+                        "isEOF": 1,
+                        "limit": 1,
+                        "inputStage": {
+                          "stage": "seek",
+                          "planNodeId": 2,
+                          "nReturned": 4883,
+                          "executionTimeMillisEstimate": 2,
+                          "opens": 4883,
+                          "closes": 1,
+                          "saveState": 3,
+                          "restoreState": 3,
+                          "isEOF": 0,
+                          "numReads": 4883,
+                          "recordSlot": 6,
+                          "recordIdSlot": 7,
+                          "seekRecordIdSlot": 1,
+                          "snapshotIdSlot": 2,
+                          "indexIdentSlot": 3,
+                          "indexKeySlot": 4,
+                          "indexKeyPatternSlot": 5,
+                          "scanFieldNames": [
+                            "detalle",
+                            "sede_id"
+                          ],
+                          "scanFieldSlots": [
+                            {
+                              "high": 0,
+                              "low": 8,
+                              "unsigned": false
+                            },
+                            {
+                              "high": 0,
+                              "low": 9,
+                              "unsigned": false
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 140,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 9,
+          "unsigned": false
+        }
+      },
+      {
+        "$sort": {
+          "sortKey": {
+            "_id.sede_id": 1,
+            "anulaciones": -1,
+            "_id.motivo": 1
+          }
+        },
+        "totalDataSizeSortedBytesEstimate": {
+          "high": 0,
+          "low": 93960,
+          "unsigned": false
+        },
+        "usedDisk": false,
+        "spills": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "spilledDataStorageSize": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 140,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 9,
+          "unsigned": false
+        }
+      }
+    ],
+    "queryShapeHash": "B534FC2B5614D7477799037C7B88E580B2275F0D3FDB3C717316CCE1CD029C11",
+    "serverInfo": {
+      "host": "2909a48c7d2e",
+      "port": 27017,
+      "version": "8.0.38",
+      "gitVersion": "b2f7afe3a6838999fd375c7a7ea678189f795568"
+    },
+    "serverParameters": {
+      "internalQueryFacetBufferSizeBytes": 104857600,
+      "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+      "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+      "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+      "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+      "internalQueryProhibitBlockingMergeOnMongoS": 0,
+      "internalQueryMaxAddToSetBytes": 104857600,
+      "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+      "internalQueryFrameworkControl": "trySbeRestricted",
+      "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+    },
+    "command": {
+      "aggregate": "eventos_cita",
+      "pipeline": [
+        {
+          "$match": {
+            "tipo": "ANULACION",
+            "ts": {
+              "$gte": "2026-10-03T00:00:00.000Z",
+              "$lt": "2026-11-02T00:00:00.000Z"
+            }
+          }
+        },
+        {
+          "$group": {
+            "_id": {
+              "sede_id": "$sede_id",
+              "motivo": "$detalle.motivo"
+            },
+            "anulaciones": {
+              "$sum": 1
+            }
+          }
+        },
+        {
+          "$sort": {
+            "_id.sede_id": 1,
+            "anulaciones": -1,
+            "_id.motivo": 1
+          }
+        }
+      ],
+      "cursor": {},
+      "$db": "salud360"
+    },
+    "ok": 1
+  }
+}

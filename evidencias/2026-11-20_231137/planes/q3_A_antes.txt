@@ -1,0 +1,49 @@
+-- Q3 · escenario A · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q3_antes.sql
+
+-- Q3 ANTES · Búsqueda de paciente por nombre y sus próximas citas
+-- Negocio: en cada llamada o llegada al mesón se busca al paciente por parte
+-- de su nombre y se revisan sus horas futuras.
+SELECT p.paciente_id, p.rut, p.nombre_completo, p.prevision,
+       c.cita_id, c.fecha_hora, c.estado, s.nombre AS sede
+FROM pacientes p
+LEFT JOIN citas c ON c.paciente_id = p.paciente_id
+                 AND c.fecha_hora >= TIMESTAMP '2026-11-02'
+LEFT JOIN sedes s ON s.sede_id = c.sede_id
+WHERE UPPER(p.nombre_completo) LIKE '%ROJAS MUÑOZ%'
+ORDER BY p.nombre_completo, p.paciente_id, c.fecha_hora
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=15033.84..15033.86 rows=8 width=89) (actual time=40.495..40.498 rows=22.00 loops=1)
+   Sort Key: p.nombre_completo, p.paciente_id, c.fecha_hora
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=7192
+   ->  Nested Loop Left Join  (cost=1541.20..15033.72 rows=8 width=89) (actual time=31.894..40.443 rows=22.00 loops=1)
+         Buffers: shared hit=7183
+         ->  Hash Right Join  (cost=1541.06..15032.47 rows=8 width=78) (actual time=31.872..40.395 rows=22.00 loops=1)
+               Hash Cond: (c.paciente_id = p.paciente_id)
+               Buffers: shared hit=7153
+               ->  Seq Scan on citas c  (cost=0.00..13285.65 rows=78381 width=37) (actual time=15.960..21.885 rows=70487.00 loops=1)
+                     Filter: (fecha_hora >= '2026-11-02 00:00:00'::timestamp without time zone)
+                     Rows Removed by Filter: 429513
+                     Buffers: shared hit=6362
+               ->  Hash  (cost=1541.00..1541.00 rows=5 width=49) (actual time=15.824..15.825 rows=19.00 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 10kB
+                     Buffers: shared hit=791
+                     ->  Seq Scan on pacientes p  (cost=0.00..1541.00 rows=5 width=49) (actual time=0.688..15.811 rows=19.00 loops=1)
+                           Filter: (upper(nombre_completo) ~~ '%ROJAS MUÑOZ%'::text)
+                           Rows Removed by Filter: 49981
+                           Buffers: shared hit=791
+         ->  Index Scan using sedes_pkey on sedes s  (cost=0.14..0.16 rows=1 width=19) (actual time=0.001..0.001 rows=0.68 loops=22)
+               Index Cond: (sede_id = c.sede_id)
+               Index Searches: 15
+               Buffers: shared hit=30
+ Planning:
+   Buffers: shared hit=294
+ Planning Time: 0.569 ms
+ Execution Time: 40.560 ms
+(28 rows)
+

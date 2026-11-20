@@ -1,0 +1,22 @@
+-- Salida de 03_optimizaciones.sql (con tiempos de creación)
+
+CREATE INDEX ix_citas_disponibles
+    ON citas (sede_id, fecha_hora)
+    INCLUDE (profesional_id)
+    WHERE estado = 'DISPONIBLE';
+Time: 62.092 ms
+CREATE INDEX ix_citas_fecha_brin
+    ON citas USING brin (fecha_hora);
+Time: 35.886 ms
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+Time: 5.947 ms
+CREATE INDEX ix_pacientes_nombre_trgm
+    ON pacientes USING gin (nombre_completo gin_trgm_ops);
+Time: 293.814 ms
+CREATE INDEX ix_citas_paciente_fecha
+    ON citas (paciente_id, fecha_hora);
+Time: 219.682 ms
+ANALYZE citas;
+Time: 98.601 ms
+ANALYZE pacientes;
+Time: 188.695 ms

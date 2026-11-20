@@ -1,0 +1,63 @@
+-- Q1 · escenario C · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q1_antes.sql
+
+-- Q1 ANTES · Disponibilidad de horas
+-- Negocio: el call center y la recepción buscan horas libres de una especialidad
+-- en una sede para la próxima semana. Se ejecuta cientos de veces al día.
+SELECT c.cita_id, c.fecha_hora, p.nombre_completo AS profesional, e.nombre AS especialidad
+FROM citas c
+JOIN profesionales p   ON p.profesional_id  = c.profesional_id
+JOIN especialidades e  ON e.especialidad_id = p.especialidad_id
+JOIN sedes s           ON s.sede_id         = c.sede_id
+WHERE s.nombre = 'Sede Santiago Centro'
+  AND e.nombre = 'Cardiología'
+  AND c.estado = 'DISPONIBLE'
+  AND DATE(c.fecha_hora) BETWEEN DATE '2026-11-02' AND DATE '2026-11-08'
+ORDER BY c.fecha_hora, c.cita_id
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=7079.79..7079.80 rows=2 width=53) (actual time=7.520..7.526 rows=40.00 loops=1)
+   Sort Key: c.fecha_hora, c.cita_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=4304
+   ->  Hash Join  (cost=145.06..7079.78 rows=2 width=53) (actual time=4.825..7.490 rows=40.00 loops=1)
+         Hash Cond: (p.especialidad_id = e.especialidad_id)
+         Buffers: shared hit=4298
+         ->  Nested Loop  (cost=143.90..7078.53 rows=26 width=43) (actual time=4.799..7.441 rows=262.00 loops=1)
+               Buffers: shared hit=4297
+               ->  Nested Loop  (cost=143.75..7073.05 rows=26 width=20) (actual time=4.786..7.245 rows=262.00 loops=1)
+                     Buffers: shared hit=3773
+                     ->  Seq Scan on sedes s  (cost=0.00..1.25 rows=1 width=4) (actual time=0.006..0.010 rows=1.00 loops=1)
+                           Filter: (nombre = 'Sede Santiago Centro'::text)
+                           Rows Removed by Filter: 19
+                           Buffers: shared hit=1
+                     ->  Bitmap Heap Scan on citas c  (cost=143.75..7071.54 rows=26 width=24) (actual time=4.777..7.208 rows=262.00 loops=1)
+                           Recheck Cond: ((s.sede_id = sede_id) AND ((estado)::text = 'DISPONIBLE'::text))
+                           Filter: ((date(fecha_hora) >= '2026-11-02'::date) AND (date(fecha_hora) <= '2026-11-08'::date))
+                           Rows Removed by Filter: 5221
+                           Heap Blocks: exact=3725
+                           Buffers: shared hit=3772
+                           ->  Bitmap Index Scan on ix_citas_disponibles  (cost=0.00..143.74 rows=5243 width=0) (actual time=0.912..0.912 rows=8483.00 loops=1)
+                                 Index Cond: (sede_id = s.sede_id)
+                                 Index Searches: 1
+                                 Buffers: shared hit=47
+               ->  Index Scan using profesionales_pkey on profesionales p  (cost=0.15..0.21 rows=1 width=31) (actual time=0.001..0.001 rows=1.00 loops=262)
+                     Index Cond: (profesional_id = c.profesional_id)
+                     Index Searches: 262
+                     Buffers: shared hit=524
+         ->  Hash  (cost=1.15..1.15 rows=1 width=18) (actual time=0.014..0.015 rows=1.00 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 9kB
+               Buffers: shared hit=1
+               ->  Seq Scan on especialidades e  (cost=0.00..1.15 rows=1 width=18) (actual time=0.008..0.009 rows=1.00 loops=1)
+                     Filter: (nombre = 'Cardiología'::text)
+                     Rows Removed by Filter: 11
+                     Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=371
+ Planning Time: 0.863 ms
+ Execution Time: 7.636 ms
+(40 rows)
+

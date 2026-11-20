@@ -1,0 +1,399 @@
+{
+  "pipeline": [
+    {
+      "$addFields": {
+        "dia": {
+          "$dateTrunc": {
+            "date": "$ts",
+            "unit": "day"
+          }
+        }
+      }
+    },
+    {
+      "$match": {
+        "tipo": "ANULACION",
+        "dia": {
+          "$gte": "2026-10-03T00:00:00.000Z",
+          "$lt": "2026-11-02T00:00:00.000Z"
+        }
+      }
+    },
+    {
+      "$group": {
+        "_id": {
+          "sede_id": "$sede_id",
+          "motivo": "$detalle.motivo"
+        },
+        "anulaciones": {
+          "$sum": 1
+        }
+      }
+    },
+    {
+      "$sort": {
+        "_id.sede_id": 1,
+        "anulaciones": -1,
+        "_id.motivo": 1
+      }
+    }
+  ],
+  "explain": {
+    "explainVersion": "1",
+    "stages": [
+      {
+        "$cursor": {
+          "queryPlanner": {
+            "namespace": "salud360.eventos_cita",
+            "parsedQuery": {
+              "tipo": {
+                "$eq": "ANULACION"
+              }
+            },
+            "indexFilterSet": false,
+            "queryHash": "3A7C2616",
+            "planCacheShapeHash": "3A7C2616",
+            "planCacheKey": "B09636A7",
+            "optimizationTimeMillis": 0,
+            "maxIndexedOrSolutionsReached": false,
+            "maxIndexedAndSolutionsReached": false,
+            "maxScansToExplodeReached": false,
+            "prunedSimilarIndexes": false,
+            "winningPlan": {
+              "isCached": false,
+              "stage": "PROJECTION_DEFAULT",
+              "transformBy": {
+                "detalle.motivo": 1,
+                "sede_id": 1,
+                "ts": 1,
+                "_id": 0
+              },
+              "inputStage": {
+                "stage": "FETCH",
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "keyPattern": {
+                    "tipo": 1,
+                    "ts": 1
+                  },
+                  "indexName": "ix_eventos_tipo_ts",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "tipo": [],
+                    "ts": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "tipo": [
+                      "[\"ANULACION\", \"ANULACION\"]"
+                    ],
+                    "ts": [
+                      "[MinKey, MaxKey]"
+                    ]
+                  }
+                }
+              }
+            },
+            "rejectedPlans": []
+          },
+          "executionStats": {
+            "executionSuccess": true,
+            "nReturned": 59924,
+            "executionTimeMillis": 179,
+            "totalKeysExamined": 59924,
+            "totalDocsExamined": 59924,
+            "executionStages": {
+              "isCached": false,
+              "stage": "PROJECTION_DEFAULT",
+              "nReturned": 59924,
+              "executionTimeMillisEstimate": 96,
+              "works": 59925,
+              "advanced": 59924,
+              "needTime": 0,
+              "needYield": 0,
+              "saveState": 20,
+              "restoreState": 20,
+              "isEOF": 1,
+              "transformBy": {
+                "detalle.motivo": 1,
+                "sede_id": 1,
+                "ts": 1,
+                "_id": 0
+              },
+              "inputStage": {
+                "stage": "FETCH",
+                "nReturned": 59924,
+                "executionTimeMillisEstimate": 66,
+                "works": 59925,
+                "advanced": 59924,
+                "needTime": 0,
+                "needYield": 0,
+                "saveState": 20,
+                "restoreState": 20,
+                "isEOF": 1,
+                "docsExamined": 59924,
+                "alreadyHasObj": 0,
+                "inputStage": {
+                  "stage": "IXSCAN",
+                  "nReturned": 59924,
+                  "executionTimeMillisEstimate": 2,
+                  "works": 59925,
+                  "advanced": 59924,
+                  "needTime": 0,
+                  "needYield": 0,
+                  "saveState": 20,
+                  "restoreState": 20,
+                  "isEOF": 1,
+                  "keyPattern": {
+                    "tipo": 1,
+                    "ts": 1
+                  },
+                  "indexName": "ix_eventos_tipo_ts",
+                  "isMultiKey": false,
+                  "multiKeyPaths": {
+                    "tipo": [],
+                    "ts": []
+                  },
+                  "isUnique": false,
+                  "isSparse": false,
+                  "isPartial": false,
+                  "indexVersion": 2,
+                  "direction": "forward",
+                  "indexBounds": {
+                    "tipo": [
+                      "[\"ANULACION\", \"ANULACION\"]"
+                    ],
+                    "ts": [
+                      "[MinKey, MaxKey]"
+                    ]
+                  },
+                  "keysExamined": 59924,
+                  "seeks": 1,
+                  "dupsTested": 0,
+                  "dupsDropped": 0
+                }
+              }
+            }
+          }
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 59924,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 133,
+          "unsigned": false
+        }
+      },
+      {
+        "$addFields": {
+          "dia": {
+            "$dateTrunc": {
+              "date": "$ts",
+              "unit": {
+                "$const": "day"
+              }
+            }
+          }
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 59924,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 165,
+          "unsigned": false
+        }
+      },
+      {
+        "$match": {
+          "$and": [
+            {
+              "dia": {
+                "$gte": "2026-10-03T00:00:00.000Z"
+              }
+            },
+            {
+              "dia": {
+                "$lt": "2026-11-02T00:00:00.000Z"
+              }
+            }
+          ]
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 4883,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 165,
+          "unsigned": false
+        }
+      },
+      {
+        "$group": {
+          "_id": {
+            "sede_id": "$sede_id",
+            "motivo": "$detalle.motivo"
+          },
+          "anulaciones": {
+            "$sum": {
+              "$const": 1
+            }
+          }
+        },
+        "maxAccumulatorMemoryUsageBytes": {
+          "anulaciones": {
+            "high": 0,
+            "low": 17920,
+            "unsigned": false
+          }
+        },
+        "totalOutputDataSizeBytes": {
+          "high": 0,
+          "low": 74560,
+          "unsigned": false
+        },
+        "usedDisk": false,
+        "spills": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "spilledDataStorageSize": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "numBytesSpilledEstimate": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "spilledRecords": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 140,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 175,
+          "unsigned": false
+        }
+      },
+      {
+        "$sort": {
+          "sortKey": {
+            "_id.sede_id": 1,
+            "anulaciones": -1,
+            "_id.motivo": 1
+          }
+        },
+        "totalDataSizeSortedBytesEstimate": {
+          "high": 0,
+          "low": 93960,
+          "unsigned": false
+        },
+        "usedDisk": false,
+        "spills": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "spilledDataStorageSize": {
+          "high": 0,
+          "low": 0,
+          "unsigned": false
+        },
+        "nReturned": {
+          "high": 0,
+          "low": 140,
+          "unsigned": false
+        },
+        "executionTimeMillisEstimate": {
+          "high": 0,
+          "low": 175,
+          "unsigned": false
+        }
+      }
+    ],
+    "queryShapeHash": "77EB469E4A0496187AD1DF4B939A3C1414FF65AEC28C0BE2CB7C26FE365556BA",
+    "serverInfo": {
+      "host": "2909a48c7d2e",
+      "port": 27017,
+      "version": "8.0.38",
+      "gitVersion": "b2f7afe3a6838999fd375c7a7ea678189f795568"
+    },
+    "serverParameters": {
+      "internalQueryFacetBufferSizeBytes": 104857600,
+      "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+      "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+      "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+      "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+      "internalQueryProhibitBlockingMergeOnMongoS": 0,
+      "internalQueryMaxAddToSetBytes": 104857600,
+      "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+      "internalQueryFrameworkControl": "trySbeRestricted",
+      "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+    },
+    "command": {
+      "aggregate": "eventos_cita",
+      "pipeline": [
+        {
+          "$addFields": {
+            "dia": {
+              "$dateTrunc": {
+                "date": "$ts",
+                "unit": "day"
+              }
+            }
+          }
+        },
+        {
+          "$match": {
+            "tipo": "ANULACION",
+            "dia": {
+              "$gte": "2026-10-03T00:00:00.000Z",
+              "$lt": "2026-11-02T00:00:00.000Z"
+            }
+          }
+        },
+        {
+          "$group": {
+            "_id": {
+              "sede_id": "$sede_id",
+              "motivo": "$detalle.motivo"
+            },
+            "anulaciones": {
+              "$sum": 1
+            }
+          }
+        },
+        {
+          "$sort": {
+            "_id.sede_id": 1,
+            "anulaciones": -1,
+            "_id.motivo": 1
+          }
+        }
+      ],
+      "cursor": {},
+      "$db": "salud360"
+    },
+    "ok": 1
+  }
+}

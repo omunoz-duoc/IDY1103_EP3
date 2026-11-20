@@ -1,0 +1,84 @@
+-- Q2 · escenario A · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q2_antes.sql
+
+-- Q2 ANTES · Inasistencias y anulaciones por sede (octubre 2026)
+-- Negocio: el analista de operaciones revisa qué sedes pierden más horas
+-- (pacientes que no llegan o anulan). Reporte mensual y tablero.
+SELECT t.*,
+       round(100.0 * (t.inasistencias + t.anulaciones) / NULLIF(t.citas_tomadas, 0), 1) AS pct_horas_perdidas
+FROM (
+  SELECT s.nombre AS sede, s.region,
+         (SELECT COUNT(*) FROM citas c
+           WHERE c.sede_id = s.sede_id
+             AND c.fecha_hora >= TIMESTAMP '2026-10-01' AND c.fecha_hora < TIMESTAMP '2026-11-01'
+             AND c.estado <> 'DISPONIBLE')                     AS citas_tomadas,
+         (SELECT COUNT(*) FROM citas c
+           WHERE c.sede_id = s.sede_id
+             AND c.fecha_hora >= TIMESTAMP '2026-10-01' AND c.fecha_hora < TIMESTAMP '2026-11-01'
+             AND c.estado = 'NO_ASISTE')                       AS inasistencias,
+         (SELECT COUNT(*) FROM citas c
+           WHERE c.sede_id = s.sede_id
+             AND c.fecha_hora >= TIMESTAMP '2026-10-01' AND c.fecha_hora < TIMESTAMP '2026-11-01'
+             AND c.estado = 'ANULADA')                         AS anulaciones
+  FROM sedes s
+) t
+ORDER BY pct_horas_perdidas DESC, sede
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                                                                  QUERY PLAN                                                                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2092985.48..2092985.53 rows=20 width=77) (actual time=2084.323..2084.330 rows=20.00 loops=1)
+   Sort Key: (round(((100.0 * (((SubPlan 4) + (SubPlan 5)))::numeric) / (NULLIF((SubPlan 6), 0))::numeric), 1)) DESC, s.nombre
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=763447
+   ->  Seq Scan on sedes s  (cost=0.00..2092985.05 rows=20 width=77) (actual time=120.794..2084.223 rows=20.00 loops=1)
+         Buffers: shared hit=763441
+         SubPlan 1
+           ->  Aggregate  (cost=17443.88..17443.89 rows=1 width=8) (actual time=17.788..17.788 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c  (cost=0.00..17439.84 rows=1618 width=0) (actual time=12.460..17.713 rows=1575.10 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND ((estado)::text <> 'DISPONIBLE'::text) AND (sede_id = s.sede_id))
+                       Rows Removed by Filter: 498425
+                       Buffers: shared hit=127240
+         SubPlan 2
+           ->  Aggregate  (cost=17440.26..17440.27 rows=1 width=8) (actual time=17.404..17.404 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c_1  (cost=0.00..17439.84 rows=167 width=0) (actual time=12.467..17.388 rows=183.45 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND (sede_id = s.sede_id) AND ((estado)::text = 'NO_ASISTE'::text))
+                       Rows Removed by Filter: 499817
+                       Buffers: shared hit=127240
+         SubPlan 3
+           ->  Aggregate  (cost=17440.42..17440.42 rows=1 width=8) (actual time=17.252..17.253 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c_2  (cost=0.00..17439.84 rows=230 width=0) (actual time=12.304..17.235 rows=215.80 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND (sede_id = s.sede_id) AND ((estado)::text = 'ANULADA'::text))
+                       Rows Removed by Filter: 499784
+                       Buffers: shared hit=127240
+         SubPlan 4
+           ->  Aggregate  (cost=17440.26..17440.27 rows=1 width=8) (actual time=17.184..17.184 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c_3  (cost=0.00..17439.84 rows=167 width=0) (actual time=12.239..17.168 rows=183.45 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND (sede_id = s.sede_id) AND ((estado)::text = 'NO_ASISTE'::text))
+                       Rows Removed by Filter: 499817
+                       Buffers: shared hit=127240
+         SubPlan 5
+           ->  Aggregate  (cost=17440.42..17440.42 rows=1 width=8) (actual time=17.096..17.097 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c_4  (cost=0.00..17439.84 rows=230 width=0) (actual time=12.205..17.080 rows=215.80 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND (sede_id = s.sede_id) AND ((estado)::text = 'ANULADA'::text))
+                       Rows Removed by Filter: 499784
+                       Buffers: shared hit=127240
+         SubPlan 6
+           ->  Aggregate  (cost=17443.88..17443.89 rows=1 width=8) (actual time=17.448..17.449 rows=1.00 loops=20)
+                 Buffers: shared hit=127240
+                 ->  Seq Scan on citas c_5  (cost=0.00..17439.84 rows=1618 width=0) (actual time=12.204..17.379 rows=1575.10 loops=20)
+                       Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone) AND ((estado)::text <> 'DISPONIBLE'::text) AND (sede_id = s.sede_id))
+                       Rows Removed by Filter: 498425
+                       Buffers: shared hit=127240
+ Planning:
+   Buffers: shared hit=139
+ Planning Time: 0.547 ms
+ Execution Time: 2084.442 ms
+(52 rows)
+

@@ -1,0 +1,48 @@
+-- Q3 · escenario C · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q3_antes.sql
+
+-- Q3 ANTES · Búsqueda de paciente por nombre y sus próximas citas
+-- Negocio: en cada llamada o llegada al mesón se busca al paciente por parte
+-- de su nombre y se revisan sus horas futuras.
+SELECT p.paciente_id, p.rut, p.nombre_completo, p.prevision,
+       c.cita_id, c.fecha_hora, c.estado, s.nombre AS sede
+FROM pacientes p
+LEFT JOIN citas c ON c.paciente_id = p.paciente_id
+                 AND c.fecha_hora >= TIMESTAMP '2026-11-02'
+LEFT JOIN sedes s ON s.sede_id = c.sede_id
+WHERE UPPER(p.nombre_completo) LIKE '%ROJAS MUÑOZ%'
+ORDER BY p.nombre_completo, p.paciente_id, c.fecha_hora
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1587.04..1587.06 rows=8 width=89) (actual time=19.233..19.236 rows=22.00 loops=1)
+   Sort Key: p.nombre_completo, p.paciente_id, c.fecha_hora
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=873
+   ->  Nested Loop Left Join  (cost=0.42..1586.92 rows=8 width=89) (actual time=0.922..19.175 rows=22.00 loops=1)
+         Join Filter: (s.sede_id = c.sede_id)
+         Rows Removed by Join Filter: 294
+         Buffers: shared hit=864
+         ->  Nested Loop Left Join  (cost=0.42..1583.27 rows=8 width=78) (actual time=0.900..19.108 rows=22.00 loops=1)
+               Buffers: shared hit=863
+               ->  Seq Scan on pacientes p  (cost=0.00..1541.00 rows=5 width=49) (actual time=0.872..18.863 rows=19.00 loops=1)
+                     Filter: (upper(nombre_completo) ~~ '%ROJAS MUÑOZ%'::text)
+                     Rows Removed by Filter: 49981
+                     Buffers: shared hit=791
+               ->  Index Scan using ix_citas_paciente_fecha on citas c  (cost=0.42..8.45 rows=1 width=37) (actual time=0.011..0.012 rows=0.79 loops=19)
+                     Index Cond: ((paciente_id = p.paciente_id) AND (fecha_hora >= '2026-11-02 00:00:00'::timestamp without time zone))
+                     Index Searches: 19
+                     Buffers: shared hit=72
+         ->  Materialize  (cost=0.00..1.30 rows=20 width=19) (actual time=0.001..0.002 rows=14.05 loops=22)
+               Storage: Memory  Maximum Storage: 17kB
+               Buffers: shared hit=1
+               ->  Seq Scan on sedes s  (cost=0.00..1.20 rows=20 width=19) (actual time=0.008..0.011 rows=20.00 loops=1)
+                     Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=386
+ Planning Time: 0.880 ms
+ Execution Time: 19.296 ms
+(27 rows)
+

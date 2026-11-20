@@ -1,0 +1,57 @@
+-- Q2 · escenario B · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q2_despues.sql
+
+-- Q2 DESPUÉS · Inasistencias y anulaciones por sede (octubre 2026)
+-- Reescritura: una sola pasada sobre citas con GROUP BY y COUNT(*) FILTER,
+-- en vez de 3 subconsultas correlacionadas por cada sede (60 recorridos).
+-- Apoyo: índice BRIN ix_citas_fecha_brin sobre fecha_hora.
+WITH resumen AS (
+  SELECT c.sede_id,
+         COUNT(*) FILTER (WHERE c.estado <> 'DISPONIBLE') AS citas_tomadas,
+         COUNT(*) FILTER (WHERE c.estado = 'NO_ASISTE')   AS inasistencias,
+         COUNT(*) FILTER (WHERE c.estado = 'ANULADA')     AS anulaciones
+  FROM citas c
+  WHERE c.fecha_hora >= TIMESTAMP '2026-10-01' AND c.fecha_hora < TIMESTAMP '2026-11-01'
+  GROUP BY c.sede_id
+)
+SELECT s.nombre AS sede, s.region,
+       COALESCE(r.citas_tomadas, 0) AS citas_tomadas,
+       COALESCE(r.inasistencias, 0) AS inasistencias,
+       COALESCE(r.anulaciones, 0)   AS anulaciones,
+       round(100.0 * (r.inasistencias + r.anulaciones) / NULLIF(r.citas_tomadas, 0), 1) AS pct_horas_perdidas
+FROM sedes s
+LEFT JOIN resumen r ON r.sede_id = s.sede_id
+ORDER BY pct_horas_perdidas DESC, sede
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                                     QUERY PLAN                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=15373.48..15373.53 rows=20 width=77) (actual time=29.548..29.552 rows=20.00 loops=1)
+   Sort Key: (round(((100.0 * ((r.inasistencias + r.anulaciones))::numeric) / (NULLIF(r.citas_tomadas, 0))::numeric), 1)) DESC, s.nombre
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=6369
+   ->  Hash Left Join  (cost=15371.43..15373.05 rows=20 width=77) (actual time=29.460..29.483 rows=20.00 loops=1)
+         Hash Cond: (s.sede_id = r.sede_id)
+         Buffers: shared hit=6363
+         ->  Seq Scan on sedes s  (cost=0.00..1.20 rows=20 width=25) (actual time=0.008..0.011 rows=20.00 loops=1)
+               Buffers: shared hit=1
+         ->  Hash  (cost=15371.18..15371.18 rows=20 width=28) (actual time=29.435..29.436 rows=20.00 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 10kB
+               Buffers: shared hit=6362
+               ->  Subquery Scan on r  (cost=15370.78..15371.18 rows=20 width=28) (actual time=29.419..29.424 rows=20.00 loops=1)
+                     Buffers: shared hit=6362
+                     ->  HashAggregate  (cost=15370.78..15370.98 rows=20 width=28) (actual time=29.418..29.421 rows=20.00 loops=1)
+                           Group Key: c.sede_id
+                           Batches: 1  Memory Usage: 32kB
+                           Buffers: shared hit=6362
+                           ->  Seq Scan on citas c  (cost=0.00..14670.38 rows=40023 width=13) (actual time=17.137..24.754 rows=36197.00 loops=1)
+                                 Filter: ((fecha_hora >= '2026-10-01 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-01 00:00:00'::timestamp without time zone))
+                                 Rows Removed by Filter: 463803
+                                 Buffers: shared hit=6362
+ Planning:
+   Buffers: shared hit=155
+ Planning Time: 0.478 ms
+ Execution Time: 29.621 ms
+(26 rows)
+

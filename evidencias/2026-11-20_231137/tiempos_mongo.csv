@@ -1,0 +1,13 @@
+escenario,corrida,tiempo_ms,docs_examinados,claves_examinadas,etapas
+A,1,234,600000,0,"COLLSCAN → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+A,2,224,600000,0,"COLLSCAN → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+A,3,186,600000,0,"COLLSCAN → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+B,1,198,600000,0,"COLLSCAN → GROUP → $sort"
+B,2,180,600000,0,"COLLSCAN → GROUP → $sort"
+B,3,179,600000,0,"COLLSCAN → GROUP → $sort"
+C,1,170,59924,59924,"IXSCAN (ix_eventos_tipo_ts) → FETCH → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+C,2,199,59924,59924,"IXSCAN (ix_eventos_tipo_ts) → FETCH → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+C,3,197,59924,59924,"IXSCAN (ix_eventos_tipo_ts) → FETCH → PROJECTION_DEFAULT → $addFields → $match → $group → $sort"
+D,1,11,4883,4883,"IXSCAN (ix_eventos_tipo_ts) → FETCH → GROUP → $sort"
+D,2,11,4883,4883,"IXSCAN (ix_eventos_tipo_ts) → FETCH → GROUP → $sort"
+D,3,11,4883,4883,"IXSCAN (ix_eventos_tipo_ts) → FETCH → GROUP → $sort"

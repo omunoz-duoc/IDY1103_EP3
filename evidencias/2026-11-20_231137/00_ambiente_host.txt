@@ -1,0 +1,16 @@
+Fecha y hora: 2026-11-20 23:11:37 UTC
+Sistema del anfitrión: Linux 6.18.44-fc-v726 x86_64
+
+--- docker version
+Cliente 29.10.0 · Servidor 29.10.0 (linux/amd64)
+--- docker compose version
+5.7.1
+--- docker info (recursos totales disponibles para Docker)
+Sistema: Ubuntu 24.04.5 LTS
+Kernel: 6.18.44-fc-v726
+CPUs para Docker: 4
+RAM para Docker: 16869113856 bytes
+
+--- Límites aplicados a cada contenedor (NanoCpus / Memoria en bytes)
+postgres: 2000000000 / 2147483648
+mongo: 2000000000 / 2147483648

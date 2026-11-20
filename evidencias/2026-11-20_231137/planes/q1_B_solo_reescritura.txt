@@ -1,0 +1,55 @@
+-- Q1 · escenario B · ejecución 2026-11-20_231137
+-- Archivo: scripts/postgres/consultas/q1_despues.sql
+
+-- Q1 DESPUÉS · Disponibilidad de horas
+-- Reescritura: rango directo sobre fecha_hora (sargable), filtro por sede_id
+-- resuelto antes del join (sin unir la tabla sedes completa).
+-- Apoyo: índice B-Tree compuesto y parcial ix_citas_disponibles.
+SELECT c.cita_id, c.fecha_hora, p.nombre_completo AS profesional, e.nombre AS especialidad
+FROM citas c
+JOIN profesionales p  ON p.profesional_id  = c.profesional_id
+JOIN especialidades e ON e.especialidad_id = p.especialidad_id
+WHERE c.sede_id = (SELECT sede_id FROM sedes WHERE nombre = 'Sede Santiago Centro')
+  AND e.nombre = 'Cardiología'
+  AND c.estado = 'DISPONIBLE'
+  AND c.fecha_hora >= TIMESTAMP '2026-11-02'
+  AND c.fecha_hora <  TIMESTAMP '2026-11-09'
+ORDER BY c.fecha_hora, c.cita_id
+
+
+-- EXPLAIN (ANALYZE, BUFFERS) ---------------------------------
+                                                                                                                     QUERY PLAN                                                                                                                     
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=17480.54..17480.56 rows=7 width=53) (actual time=25.636..25.640 rows=40.00 loops=1)
+   Sort Key: c.fecha_hora, c.cita_id
+   Sort Method: quicksort  Memory: 27kB
+   Buffers: shared hit=6894
+   InitPlan 1
+     ->  Seq Scan on sedes  (cost=0.00..1.25 rows=1 width=4) (actual time=0.017..0.018 rows=1.00 loops=1)
+           Filter: (nombre = 'Sede Santiago Centro'::text)
+           Rows Removed by Filter: 19
+           Buffers: shared hit=1
+   ->  Nested Loop  (cost=0.15..17479.19 rows=7 width=53) (actual time=20.216..25.608 rows=40.00 loops=1)
+         Join Filter: (e.especialidad_id = p.especialidad_id)
+         Rows Removed by Join Filter: 222
+         Buffers: shared hit=6888
+         ->  Seq Scan on especialidades e  (cost=0.00..1.15 rows=1 width=18) (actual time=0.008..0.011 rows=1.00 loops=1)
+               Filter: (nombre = 'Cardiología'::text)
+               Rows Removed by Filter: 11
+               Buffers: shared hit=1
+         ->  Nested Loop  (cost=0.15..17477.04 rows=80 width=43) (actual time=20.206..25.578 rows=262.00 loops=1)
+               Buffers: shared hit=6887
+               ->  Seq Scan on citas c  (cost=0.00..17439.84 rows=80 width=20) (actual time=20.189..25.373 rows=262.00 loops=1)
+                     Filter: ((fecha_hora >= '2026-11-02 00:00:00'::timestamp without time zone) AND (fecha_hora < '2026-11-09 00:00:00'::timestamp without time zone) AND (sede_id = (InitPlan 1).col1) AND ((estado)::text = 'DISPONIBLE'::text))
+                     Rows Removed by Filter: 499738
+                     Buffers: shared hit=6363
+               ->  Index Scan using profesionales_pkey on profesionales p  (cost=0.15..0.46 rows=1 width=31) (actual time=0.001..0.001 rows=1.00 loops=262)
+                     Index Cond: (profesional_id = c.profesional_id)
+                     Index Searches: 262
+                     Buffers: shared hit=524
+ Planning:
+   Buffers: shared hit=310
+ Planning Time: 0.716 ms
+ Execution Time: 25.691 ms
+(31 rows)
+
